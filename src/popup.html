@@ -26,14 +26,33 @@
         }
         .error-message {
             color: #dc3545;
+            display: none;
             padding: 10px;
-            background-color: #ffe6e6;
+            margin: 10px;
+            border: 1px solid #dc3545;
             border-radius: 4px;
+        }
+        .loader {
+            display: none;
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div id="content"></div>
+    <div id="loader" class="loader"></div>
+    <div id="error-message" class="error-message"></div>
+    <div id="translation-content"></div>
     <script src="popup.js"></script>
 </body>
 </html> 

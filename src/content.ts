@@ -2,11 +2,8 @@
 // @ts-ignore
 window.hasAITranslatorContentScript = true;
 
-console.log('%cAI Translator content script loaded!', 'color: green; font-size: 14px; font-weight: bold');
-
 // Función para testear que el content script está funcionando
 function testContentScript() {
-    console.log('Content script test function called');
     createOverlay({
         type: 'translation',
         originalText: 'Test message',
@@ -19,12 +16,8 @@ function testContentScript() {
 window.testAITranslator = testContentScript;
 
 const createOverlay = (message: { type: 'translation' | 'error', originalText?: string, translatedText?: string, errorMessage?: string }) => {
-    console.log('%cCreating overlay:', 'color: blue; font-weight: bold', message);
-    
-    // Eliminar overlay existente si hay uno
     const existingOverlay = document.getElementById('ai-translator-overlay-12345');
     if (existingOverlay) {
-        console.log('Removing existing overlay');
         existingOverlay.remove();
     }
 
@@ -88,7 +81,6 @@ const createOverlay = (message: { type: 'translation' | 'error', originalText?: 
         closeButton.style.color = '#666';
     };
     closeButton.onclick = () => {
-        console.log('Close button clicked');
         overlay.style.animation = 'fadeOut 0.3s ease-out';
         setTimeout(() => overlay.remove(), 300);
     };
@@ -116,36 +108,84 @@ const createOverlay = (message: { type: 'translation' | 'error', originalText?: 
     overlay.appendChild(closeButton);
     overlay.appendChild(content);
     document.body.appendChild(overlay);
-    console.log('Overlay added to DOM');
 };
 
-// Mejorar el listener de mensajes
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('%cMessage received in content script:', 'color: purple; font-weight: bold', {
-        message,
-        sender
-    });
-    
-    try {
-        createOverlay(message);
-        sendResponse({ success: true });
-    } catch (error) {
-        console.error('Error in content script:', error);
-        sendResponse({ success: false, error: String(error) });
-    }
-    
-    return true;
-});
+import { marked } from 'marked';
 
-// Añadir instrucciones de debugging en la consola
-console.log(`
-%cAI Translator Debugging Instructions:
-1. Para probar el overlay manualmente, ejecuta en la consola:
-   window.testAITranslator()
-2. Para verificar si el content script está cargado:
-   window.hasAITranslatorContentScript
-3. Busca mensajes con estos IDs:
-   - ai-translator-overlay-12345
-   - ai-translator-content-12345
-   - ai-translator-styles-12345
-`, 'color: green; font-size: 12px'); 
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === 'translation') {
+    const renderMarkdown = async () => {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 999999;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        padding: 16px;
+        max-width: 400px;
+        max-height: 80vh;
+        overflow-y: auto;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      `;
+      
+      // Renderizar el markdown de forma asíncrona
+      overlay.innerHTML = await marked(message.translatedText);
+      
+      // Añadir estilos para el markdown
+      const style = document.createElement('style');
+      style.textContent = `
+        .translation-overlay h3 {
+          color: #2c3e50;
+          border-bottom: 1px solid #eee;
+          padding-bottom: 8px;
+          margin-top: 16px;
+          margin-bottom: 8px;
+        }
+        .translation-overlay p {
+          margin: 8px 0;
+          line-height: 1.5;
+        }
+        .translation-overlay code {
+          background: #f8f9fa;
+          padding: 2px 4px;
+          border-radius: 4px;
+        }
+      `;
+      
+      overlay.classList.add('translation-overlay');
+      document.head.appendChild(style);
+      document.body.appendChild(overlay);
+      
+      // Añadir botón de cerrar
+      const closeButton = document.createElement('button');
+      closeButton.innerHTML = '×';
+      closeButton.style.cssText = `
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #666;
+      `;
+      closeButton.onclick = () => overlay.remove();
+      overlay.appendChild(closeButton);
+      
+      // Auto-eliminar después de 30 segundos
+      setTimeout(() => overlay.remove(), 30000);
+    };
+
+    // Manejar cualquier error que pueda ocurrir durante el renderizado
+    renderMarkdown().catch(error => {
+      console.error('Error al renderizar markdown:', error);
+      createOverlay({
+        type: 'error',
+        errorMessage: `Error al renderizar la traducción: ${error.message}`
+      });
+    });
+  }
+}); 

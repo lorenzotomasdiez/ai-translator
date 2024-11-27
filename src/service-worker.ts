@@ -79,11 +79,23 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
               box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
               padding: 16px;
               border: 2px solid #dc3545;
-              color: #dc3545;
+              max-width: 400px;
+              max-height: 80vh;
+              overflow-y: auto;
             `;
-            overlay.textContent = errorMsg;
+            
+            // Usar marked.js para renderizar markdown (necesitarás inyectar marked.js en la página)
+            overlay.innerHTML = `
+              <div style="color: #dc3545; margin-bottom: 8px;">
+                <strong>Error:</strong>
+              </div>
+              <div style="color: #333;">
+                ${errorMsg}
+              </div>
+            `;
+            
             document.body.appendChild(overlay);
-            setTimeout(() => overlay.remove(), 5000);
+            setTimeout(() => overlay.remove(), 8000);
           },
           args: [(error as Error).message]
         });
@@ -103,11 +115,25 @@ async function translateWithOllama(text: string, tabId: number): Promise<string>
       },
       body: JSON.stringify({
         model: "mistral",
-        prompt: `Eres un traductor preciso. Tu única tarea es traducir el siguiente texto del inglés al español. 
-No agregues explicaciones, notas o texto adicional. No uses comillas ni guiones.
-No respondas con frases como "La traducción es" o "Aquí está la traducción".
-Simplemente proporciona la traducción directa:
+        prompt: `Eres un asistente de traducción educativo. Por favor, proporciona:
 
+1. La traducción directa al español
+2. Un breve análisis del texto (máximo 2 líneas)
+3. Si hay modismos o expresiones idiomáticas, explícalas brevemente
+4. Si hay vocabulario importante, menciona sinónimos o usos alternativos
+
+Formatea tu respuesta en Markdown así:
+
+### Traducción
+[traducción aquí]
+
+### Análisis
+[análisis breve aquí]
+
+### Expresiones y Vocabulario
+[explicaciones aquí, si aplica]
+
+Texto a traducir:
 ${text}`,
         stream: false
       }),
@@ -120,13 +146,7 @@ ${text}`,
     }
 
     const data = JSON.parse(responseText);
-    return data.response
-      .trim()
-      .replace(/^["']|["']$/g, '')  // Elimina comillas
-      .replace(/^\s*-\s*/, '')      // Elimina guiones
-      .replace(/\n/g, ' ')          // Elimina saltos de línea
-      .replace(/^(La traducción es:?|Aquí está la traducción:?)\s*/i, '') // Elimina frases introductorias comunes
-      .trim();
+    return data.response.trim();
   } catch (error: unknown) {
     throw new Error(`Error en la traducción: ${error instanceof Error ? error.message : String(error)}`);
   }
