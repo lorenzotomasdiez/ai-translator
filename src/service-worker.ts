@@ -2,15 +2,15 @@
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
-    id: "translateSelection",
-    title: "Traducir texto seleccionado",
+    id: "translateSimple",
+    title: "Traducción Simple",
     contexts: ["selection"],
   });
 
   chrome.contextMenus.create({
-    id: "testEndpoints",
-    title: "Test Endpoints",
-    contexts: ["all"],
+    id: "translateComplete",
+    title: "Traducción Completa",
+    contexts: ["selection"],
   });
 });
 
@@ -19,21 +19,38 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (!tab?.id) return;
 
   if (info.menuItemId === "testEndpoints") {
+    testEndpointsFn(tab.id);
+  } else if ((info.menuItemId === "translateSimple" || info.menuItemId === "translateComplete") && info.selectionText) {
     try {
-      await testEndpoints(tab.id);
-    } catch (error) {
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: (errorMsg: string) => {
-          console.error('Error en tests:', errorMsg);
-        },
-        args: [(error as Error).message],
+
+      await chrome.tabs.sendMessage(tab.id, {
+        type: 'showLoader',
+        text: 'Traduciendo...'
+      }).catch(async () => {
+        // Si falla, inyectamos el content script
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id as number },
+          files: ['content.js']
+        });
+        // Intentamos mostrar el loader nuevamente
+        await chrome.tabs.sendMessage(tab.id as number, {
+          type: 'showLoader',
+          text: 'Traduciendo...'
+        });
       });
-    }
-  } else if (info.menuItemId === "translateSelection" && info.selectionText) {
-    try {
-      const translatedText = await translateWithOllama(info.selectionText, tab.id);
-      
+
+      const translatedText = await translateWithOllama(
+        info.selectionText, 
+        tab.id, 
+        info.menuItemId === "translateSimple" ? "simple" : "complete"
+      );
+
+      await chrome.tabs.sendMessage(tab.id, {
+        type: 'translation',
+        originalText: info.selectionText,
+        translatedText: translatedText
+      });
+
       // Intentar enviar el mensaje al content script
       try {
         await chrome.tabs.sendMessage(tab.id, {
@@ -60,6 +77,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       // Si hay un error en la traducción, intentamos mostrarlo a través del content script
       try {
         await chrome.tabs.sendMessage(tab.id, {
+          type: 'hideLoader'
+        });
+
+        await chrome.tabs.sendMessage(tab.id, {
           type: 'error',
           errorMessage: error instanceof Error ? error.message : String(error)
         });
@@ -83,7 +104,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
               max-height: 80vh;
               overflow-y: auto;
             `;
-            
+
             // Usar marked.js para renderizar markdown (necesitarás inyectar marked.js en la página)
             overlay.innerHTML = `
               <div style="color: #dc3545; margin-bottom: 8px;">
@@ -93,7 +114,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 ${errorMsg}
               </div>
             `;
-            
+
             document.body.appendChild(overlay);
             setTimeout(() => overlay.remove(), 8000);
           },
@@ -105,17 +126,11 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 });
 
 // Función para traducir texto usando Ollama
-async function translateWithOllama(text: string, tabId: number): Promise<string> {
+async function translateWithOllama(text: string, tabId: number, mode: "simple" | "complete"): Promise<string> {
   try {
-    const response = await fetch("http://127.0.0.1:11434/api/generate", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Origin": "http://localhost"
-      },
-      body: JSON.stringify({
-        model: "mistral",
-        prompt: `Eres un asistente de traducción educativo. Por favor, proporciona:
+    const prompt = mode === "simple" 
+      ? `Traduce este texto al español de forma simple y directa:\n${text}`
+      : `Eres un asistente de traducción educativo. Por favor, proporciona:
 
 1. La traducción directa al español
 2. Un breve análisis del texto (máximo 2 líneas)
@@ -134,13 +149,23 @@ Formatea tu respuesta en Markdown así:
 [explicaciones aquí, si aplica]
 
 Texto a traducir:
-${text}`,
+${text}`;
+
+    const response = await fetch("http://127.0.0.1:11434/api/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Origin": "http://localhost"
+      },
+      body: JSON.stringify({
+        model: "mistral",
+        prompt: prompt,
         stream: false
       }),
     });
 
     const responseText = await response.text();
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}, body: ${responseText}`);
     }
@@ -163,7 +188,7 @@ async function testEndpoints(tabId: number): Promise<string> {
 
     const versionResponse = await fetch("http://127.0.0.1:11434/api/version");
     const versionText = await versionResponse.text();
-    
+
     await chrome.scripting.executeScript({
       target: { tabId },
       func: (status, text) => console.log('Version response:', status, text),
@@ -205,7 +230,7 @@ async function testEndpoints(tabId: number): Promise<string> {
       url: generateResponse.url,
       ok: generateResponse.ok
     };
-    
+
     await chrome.scripting.executeScript({
       target: { tabId },
       func: (info) => {
@@ -223,5 +248,19 @@ async function testEndpoints(tabId: number): Promise<string> {
       args: [(error instanceof Error) ? error.message : String(error)]
     });
     throw error;
+  }
+}
+
+async function testEndpointsFn(tabId: number){
+  try {
+    await testEndpoints(tabId);
+  } catch (error) {
+    await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      func: (errorMsg: string) => {
+        console.error('Error en tests:', errorMsg);
+      },
+      args: [(error as Error).message],
+    });
   }
 }
