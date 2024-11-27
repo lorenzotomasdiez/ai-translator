@@ -16,8 +16,8 @@ This open-source project invites collaboration from developers worldwide to enha
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/ollama-chrome-extension.git
-   cd ollama-chrome-extension
+   git clone https://github.com/lorenzotomasdiez/ai-translator.git
+   cd ai-translator
    ```
 
 2. Install dependencies:
