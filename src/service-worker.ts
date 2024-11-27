@@ -103,7 +103,12 @@ async function translateWithOllama(text: string, tabId: number): Promise<string>
       },
       body: JSON.stringify({
         model: "mistral",
-        prompt: `Traduce este texto del inglés al español. Responde SOLO con la traducción, sin ningún texto adicional: "${text}"`,
+        prompt: `Eres un traductor preciso. Tu única tarea es traducir el siguiente texto del inglés al español. 
+No agregues explicaciones, notas o texto adicional. No uses comillas ni guiones.
+No respondas con frases como "La traducción es" o "Aquí está la traducción".
+Simplemente proporciona la traducción directa:
+
+${text}`,
         stream: false
       }),
     });
@@ -120,6 +125,7 @@ async function translateWithOllama(text: string, tabId: number): Promise<string>
       .replace(/^["']|["']$/g, '')  // Elimina comillas
       .replace(/^\s*-\s*/, '')      // Elimina guiones
       .replace(/\n/g, ' ')          // Elimina saltos de línea
+      .replace(/^(La traducción es:?|Aquí está la traducción:?)\s*/i, '') // Elimina frases introductorias comunes
       .trim();
   } catch (error: unknown) {
     throw new Error(`Error en la traducción: ${error instanceof Error ? error.message : String(error)}`);
