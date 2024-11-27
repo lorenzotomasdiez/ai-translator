@@ -95,28 +95,113 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
               top: 20px;
               right: 20px;
               z-index: 999999;
-              background: white;
-              border-radius: 8px;
-              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+              background: rgba(255, 255, 255, 0.85);
+              backdrop-filter: blur(20px) saturate(180%);
+              -webkit-backdrop-filter: blur(20px) saturate(180%);
+              border-radius: 12px;
+              box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 
+                          0 1px 2px rgba(0, 0, 0, 0.04);
               padding: 16px;
-              border: 2px solid #dc3545;
-              max-width: 400px;
-              max-height: 80vh;
-              overflow-y: auto;
+              max-width: 320px;
+              font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+              border: 0.5px solid rgba(0, 0, 0, 0.1);
+              animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             `;
 
-            // Usar marked.js para renderizar markdown (necesitarás inyectar marked.js en la página)
+            // Añadir estilos de animación
+            const style = document.createElement('style');
+            style.textContent = `
+              @keyframes slideIn {
+                from { 
+                  transform: translateX(20px) scale(0.95);
+                  opacity: 0;
+                }
+                to { 
+                  transform: translateX(0) scale(1);
+                  opacity: 1;
+                }
+              }
+              @keyframes fadeOut {
+                from { 
+                  transform: scale(1);
+                  opacity: 1;
+                }
+                to { 
+                  transform: scale(0.95);
+                  opacity: 0;
+                }
+              }
+            `;
+            document.head.appendChild(style);
+
             overlay.innerHTML = `
-              <div style="color: #dc3545; margin-bottom: 8px;">
-                <strong>Error:</strong>
+              <div style="
+                color: #ff3b30;
+                font-size: 13px;
+                font-weight: 500;
+                letter-spacing: -0.08px;
+                line-height: 1.4;
+                margin-bottom: 8px;
+              ">
+                Error
               </div>
-              <div style="color: #333;">
+              <div style="
+                color: rgba(0, 0, 0, 0.85);
+                font-size: 13px;
+                font-weight: 400;
+                letter-spacing: -0.08px;
+                line-height: 1.4;
+              ">
                 ${errorMsg}
               </div>
             `;
 
+            // Añadir botón de cerrar
+            const closeButton = document.createElement('button');
+            closeButton.innerHTML = '×';
+            closeButton.style.cssText = `
+              position: absolute;
+              top: 12px;
+              right: 12px;
+              width: 20px;
+              height: 20px;
+              border: none;
+              background: rgba(0, 0, 0, 0.06);
+              border-radius: 50%;
+              font-size: 16px;
+              line-height: 1;
+              cursor: pointer;
+              color: rgba(0, 0, 0, 0.5);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              transition: all 0.2s ease;
+              padding: 0;
+            `;
+
+            closeButton.onmouseover = () => {
+              closeButton.style.background = 'rgba(0, 0, 0, 0.1)';
+              closeButton.style.color = 'rgba(0, 0, 0, 0.7)';
+            };
+            closeButton.onmouseout = () => {
+              closeButton.style.background = 'rgba(0, 0, 0, 0.06)';
+              closeButton.style.color = 'rgba(0, 0, 0, 0.5)';
+            };
+            closeButton.onclick = () => {
+              overlay.style.animation = 'fadeOut 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+              setTimeout(() => overlay.remove(), 200);
+            };
+
+            overlay.appendChild(closeButton);
             document.body.appendChild(overlay);
-            setTimeout(() => overlay.remove(), 8000);
+
+            // Auto-eliminar después de 8 segundos
+            setTimeout(() => {
+              if (overlay.parentNode) {
+                overlay.style.animation = 'fadeOut 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+                setTimeout(() => overlay.remove(), 200);
+              }
+            }, 8000);
           },
           args: [(error as Error).message]
         });
