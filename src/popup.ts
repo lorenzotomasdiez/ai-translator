@@ -1,27 +1,35 @@
-type PopupMessage = {
-    type: 'translation' | 'error';
-    originalText?: string;
-    translatedText?: string;
-    errorMessage?: string;
-};
+document.addEventListener('DOMContentLoaded', () => {
+    const loader = document.getElementById('loader') as HTMLDivElement;
+    const errorMessage = document.getElementById('error-message') as HTMLDivElement;
+    const translationContent = document.getElementById('translation-content') as HTMLDivElement;
 
-// Escuchar mensajes del service worker
-chrome.runtime.onMessage.addListener((message: PopupMessage) => {
-    const contentDiv = document.getElementById('content');
-    if (!contentDiv) return;
+    // Mostrar el loader inicialmente
+    loader.style.display = 'block';
+    errorMessage.style.display = 'none';
+    translationContent.innerHTML = '';
 
-    if (message.type === 'translation') {
-        contentDiv.innerHTML = `
-            <div class="result-container">
-                <div class="original-text">${message.originalText}</div>
-                <div class="translated-text">${message.translatedText}</div>
-            </div>
-        `;
-    } else if (message.type === 'error') {
-        contentDiv.innerHTML = `
-            <div class="error-message">
-                ${message.errorMessage}
-            </div>
-        `;
-    }
+    // Escuchar mensajes del service worker
+    chrome.runtime.onMessage.addListener((message) => {
+        if (message.type === 'translationStatus') {
+            switch (message.status) {
+                case 'loading':
+                    loader.style.display = 'block';
+                    errorMessage.style.display = 'none';
+                    translationContent.innerHTML = '';
+                    break;
+                
+                case 'success':
+                    loader.style.display = 'none';
+                    errorMessage.style.display = 'none';
+                    translationContent.innerHTML = message.translation;
+                    break;
+                
+                case 'error':
+                    loader.style.display = 'none';
+                    errorMessage.style.display = 'block';
+                    errorMessage.textContent = message.error;
+                    break;
+            }
+        }
+    });
 }); 

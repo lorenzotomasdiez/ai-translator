@@ -2,11 +2,8 @@
 // @ts-ignore
 window.hasAITranslatorContentScript = true;
 
-console.log('%cAI Translator content script loaded!', 'color: green; font-size: 14px; font-weight: bold');
-
 // Función para testear que el content script está funcionando
 function testContentScript() {
-    console.log('Content script test function called');
     createOverlay({
         type: 'translation',
         originalText: 'Test message',
@@ -19,12 +16,8 @@ function testContentScript() {
 window.testAITranslator = testContentScript;
 
 const createOverlay = (message: { type: 'translation' | 'error', originalText?: string, translatedText?: string, errorMessage?: string }) => {
-    console.log('%cCreating overlay:', 'color: blue; font-weight: bold', message);
-    
-    // Eliminar overlay existente si hay uno
     const existingOverlay = document.getElementById('ai-translator-overlay-12345');
     if (existingOverlay) {
-        console.log('Removing existing overlay');
         existingOverlay.remove();
     }
 
@@ -37,14 +30,17 @@ const createOverlay = (message: { type: 'translation' | 'error', originalText?: 
         top: 20px;
         right: 20px;
         z-index: 999999;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border-radius: 12px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 
+                    0 1px 2px rgba(0, 0, 0, 0.04);
         padding: 16px;
-        max-width: 300px;
-        font-family: Arial, sans-serif;
-        animation: slideIn 0.3s ease-out;
-        border: 2px solid #4CAF50;
+        max-width: 320px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+        animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        border: 0.5px solid rgba(0, 0, 0, 0.1);
     `;
 
     // Añadir estilos de animación
@@ -55,12 +51,29 @@ const createOverlay = (message: { type: 'translation' | 'error', originalText?: 
         styleElement.id = styleId;
         styleElement.textContent = `
             @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
+                from { 
+                    transform: translateX(20px) scale(0.95);
+                    opacity: 0;
+                }
+                to { 
+                    transform: translateX(0) scale(1);
+                    opacity: 1;
+                }
             }
             @keyframes fadeOut {
-                from { opacity: 1; }
-                to { opacity: 0; }
+                from { 
+                    transform: scale(1);
+                    opacity: 1;
+                }
+                to { 
+                    transform: scale(0.95);
+                    opacity: 0;
+                }
+            }
+            @keyframes subtle-bounce {
+                0% { transform: scale(1); }
+                50% { transform: scale(0.98); }
+                100% { transform: scale(1); }
             }
         `;
         document.head.appendChild(styleElement);
@@ -71,26 +84,40 @@ const createOverlay = (message: { type: 'translation' | 'error', originalText?: 
     closeButton.innerHTML = '×';
     closeButton.style.cssText = `
         position: absolute;
-        top: 8px;
-        right: 8px;
+        top: 12px;
+        right: 12px;
+        width: 20px;
+        height: 20px;
         border: none;
-        background: none;
-        font-size: 20px;
+        background: rgba(0, 0, 0, 0.06);
+        border-radius: 50%;
+        font-size: 16px;
+        line-height: 1;
         cursor: pointer;
-        color: #666;
-        padding: 0 6px;
-        transition: color 0.2s;
+        color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        padding: 0;
     `;
     closeButton.onmouseover = () => {
-        closeButton.style.color = '#000';
+        closeButton.style.background = 'rgba(0, 0, 0, 0.1)';
+        closeButton.style.color = 'rgba(0, 0, 0, 0.7)';
     };
     closeButton.onmouseout = () => {
-        closeButton.style.color = '#666';
+        closeButton.style.background = 'rgba(0, 0, 0, 0.06)';
+        closeButton.style.color = 'rgba(0, 0, 0, 0.5)';
+    };
+    closeButton.onmousedown = () => {
+        closeButton.style.transform = 'scale(0.95)';
+    };
+    closeButton.onmouseup = () => {
+        closeButton.style.transform = 'scale(1)';
     };
     closeButton.onclick = () => {
-        console.log('Close button clicked');
-        overlay.style.animation = 'fadeOut 0.3s ease-out';
-        setTimeout(() => overlay.remove(), 300);
+        overlay.style.animation = 'fadeOut 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+        setTimeout(() => overlay.remove(), 200);
     };
 
     // Contenido
@@ -98,16 +125,40 @@ const createOverlay = (message: { type: 'translation' | 'error', originalText?: 
     content.id = 'ai-translator-content-12345';
     if (message.type === 'translation') {
         content.innerHTML = `
-            <div style="color: #666; margin-bottom: 8px; font-size: 14px;">
+            <div style="
+                color: rgba(0, 0, 0, 0.6) !important;
+                margin-bottom: 8px;
+                font-size: 13px;
+                font-weight: 400;
+                letter-spacing: -0.08px;
+                line-height: 1.4;
+                all: initial;
+                font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+            ">
                 ${message.originalText}
             </div>
-            <div style="color: #000; font-size: 16px; margin-top: 8px;">
+            <div style="
+                color: rgba(0, 0, 0, 0.85) !important;
+                font-size: 14px;
+                font-weight: 400;
+                letter-spacing: -0.1px;
+                line-height: 1.5;
+                margin-top: 8px;
+                all: initial;
+                font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+            ">
                 ${message.translatedText}
             </div>
         `;
     } else {
         content.innerHTML = `
-            <div style="color: #dc3545;">
+            <div style="
+                color: #ff3b30;
+                font-size: 13px;
+                font-weight: 400;
+                letter-spacing: -0.08px;
+                line-height: 1.4;
+            ">
                 ${message.errorMessage}
             </div>
         `;
@@ -116,36 +167,221 @@ const createOverlay = (message: { type: 'translation' | 'error', originalText?: 
     overlay.appendChild(closeButton);
     overlay.appendChild(content);
     document.body.appendChild(overlay);
-    console.log('Overlay added to DOM');
+
+    // Add hover effect to the entire overlay
+    overlay.onmouseover = () => {
+        overlay.style.transform = 'scale(1.01)';
+        overlay.style.transition = 'transform 0.2s ease';
+    };
+    overlay.onmouseout = () => {
+        overlay.style.transform = 'scale(1)';
+    };
 };
 
-// Mejorar el listener de mensajes
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('%cMessage received in content script:', 'color: purple; font-weight: bold', {
-        message,
-        sender
-    });
-    
-    try {
-        createOverlay(message);
-        sendResponse({ success: true });
-    } catch (error) {
-        console.error('Error in content script:', error);
-        sendResponse({ success: false, error: String(error) });
+import { marked } from 'marked';
+
+chrome.runtime.onMessage.addListener((message: {
+  type: 'translation' | 'error' | 'showLoader' | 'hideLoader',
+  originalText?: string,
+  translatedText?: string,
+  errorMessage?: string,
+  text?: string
+}) => {
+  if (message.type === 'showLoader') {
+    const existingLoader = document.getElementById('ai-translator-loader-12345');
+    if (existingLoader) {
+      existingLoader.remove();
+    }
+
+    const loader = document.createElement('div');
+    loader.id = 'ai-translator-loader-12345';
+    loader.setAttribute('data-testid', 'ai-translator-loader');
+    loader.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 999999;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border-radius: 12px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 
+                    0 1px 2px rgba(0, 0, 0, 0.04);
+        padding: 16px;
+        max-width: 320px;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+        animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        border: 0.5px solid rgba(0, 0, 0, 0.1);
+    `;
+
+    loader.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="spinner" style="
+                width: 18px;
+                height: 18px;
+                border: 2px solid rgba(0, 0, 0, 0.1);
+                border-top: 2px solid rgba(0, 0, 0, 0.4);
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            "></div>
+            <span style="
+                color: rgba(0, 0, 0, 0.8) !important;
+                all: initial;
+                font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+                font-size: 13px;
+                font-weight: 400;
+                letter-spacing: -0.08px;
+            ">${message.text || 'Traduciendo...'}</span>
+        </div>
+    `;
+
+    // Añadir keyframes para la animación del spinner
+    const styleId = 'ai-translator-loader-styles-12345';
+    let styleElement = document.getElementById(styleId) as HTMLStyleElement;
+    if (!styleElement) {
+      styleElement = document.createElement('style');
+      styleElement.id = styleId;
+      styleElement.textContent = `
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `;
+      document.head.appendChild(styleElement);
+    }
+
+    document.body.appendChild(loader);
+  } else if (message.type === 'hideLoader') {
+    const loader = document.getElementById('ai-translator-loader-12345');
+    if (loader) {
+      loader.style.animation = 'fadeOut 0.3s ease-out';
+      setTimeout(() => loader.remove(), 300);
+    }
+  } else if (message.type === 'translation') {
+    // Remover el loader si existe
+    const loader = document.getElementById('ai-translator-loader-12345');
+    if (loader) {
+      loader.remove();
     }
     
-    return true;
-});
+    // Resto del código existente para el manejo de traducciones...
+    const renderMarkdown = async () => {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 999999;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 
+                        0 1px 2px rgba(0, 0, 0, 0.04);
+            padding: 16px;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+            border: 0.5px solid rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        `;
 
-// Añadir instrucciones de debugging en la consola
-console.log(`
-%cAI Translator Debugging Instructions:
-1. Para probar el overlay manualmente, ejecuta en la consola:
-   window.testAITranslator()
-2. Para verificar si el content script está cargado:
-   window.hasAITranslatorContentScript
-3. Busca mensajes con estos IDs:
-   - ai-translator-overlay-12345
-   - ai-translator-content-12345
-   - ai-translator-styles-12345
-`, 'color: green; font-size: 12px'); 
+        // Renderizar el markdown de forma asíncrona
+        overlay.innerHTML = await marked(message.translatedText || '');
+
+        // Añadir estilos para el markdown
+        const style = document.createElement('style');
+        style.textContent = `
+            .translation-overlay {
+                color: rgba(0, 0, 0, 0.85) !important;
+            }
+            .translation-overlay * {
+                color: inherit !important;
+                font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
+            }
+            .translation-overlay h3 {
+                color: rgba(0, 0, 0, 0.85);
+                border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+                padding-bottom: 8px;
+                margin-top: 16px;
+                margin-bottom: 8px;
+                font-size: 15px;
+                font-weight: 500;
+                letter-spacing: -0.1px;
+            }
+            .translation-overlay p {
+                margin: 8px 0;
+                line-height: 1.5;
+                font-size: 13px;
+                letter-spacing: -0.08px;
+            }
+            .translation-overlay code {
+                background: rgba(0, 0, 0, 0.05);
+                padding: 2px 4px;
+                border-radius: 4px;
+                font-size: 12px;
+                font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace !important;
+            }
+        `;
+
+        overlay.classList.add('translation-overlay');
+        document.head.appendChild(style);
+        document.body.appendChild(overlay);
+
+        // Añadir botón de cerrar con estilo macOS
+        const closeButton = document.createElement('button');
+        closeButton.innerHTML = '×';
+        closeButton.style.cssText = `
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 20px;
+            height: 20px;
+            border: none;
+            background: rgba(0, 0, 0, 0.06);
+            border-radius: 50%;
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            padding: 0;
+        `;
+        
+        // Añadir efectos hover al botón de cerrar
+        closeButton.onmouseover = () => {
+            closeButton.style.background = 'rgba(0, 0, 0, 0.1)';
+            closeButton.style.color = 'rgba(0, 0, 0, 0.7)';
+        };
+        closeButton.onmouseout = () => {
+            closeButton.style.background = 'rgba(0, 0, 0, 0.06)';
+            closeButton.style.color = 'rgba(0, 0, 0, 0.5)';
+        };
+        closeButton.onclick = () => {
+            overlay.style.animation = 'fadeOut 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+            setTimeout(() => overlay.remove(), 200);
+        };
+        overlay.appendChild(closeButton);
+
+        // Auto-eliminar después de 30 segundos
+        setTimeout(() => {
+            if (overlay.parentNode) {
+                overlay.style.animation = 'fadeOut 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+                setTimeout(() => overlay.remove(), 200);
+            }
+        }, 30000);
+    };
+
+    renderMarkdown().catch(error => {
+      console.error('Error al renderizar markdown:', error);
+      createOverlay({
+        type: 'error',
+        errorMessage: `Error al renderizar la traducción: ${error.message}`
+      });
+    });
+  }
+}); 
